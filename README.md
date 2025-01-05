@@ -81,7 +81,7 @@ export GITHUB_TOKEN=your_github_personal_access_token
 
 2. Run the script with owner and repository name:
 ```
-python export.py OWNER REPO [--output OUTPUT_PATH]
+python export.py OWNER REPO [--output-dir OUTPUT_DIR]
 ```
 
 For example:
@@ -89,16 +89,16 @@ For example:
 # Export to current directory (default)
 python export.py octocat Hello-World
 
-# Export to specific location
-python export.py octocat Hello-World --output /path/to/export.txt
+# Export to specific directory
+python export.py octocat Hello-World --output-dir /path/to/directory
 # or
-python export.py octocat Hello-World -o /path/to/export.txt
+python export.py octocat Hello-World -o /path/to/directory
 
 # With explicit token
-python export.py octocat Hello-World --token your_github_token --output /path/to/export.txt
+python export.py octocat Hello-World --token your_github_token --output-dir /path/to/directory
 ```
 
-If no output path is specified, the script will create an export file in the current directory with the format: `owner_repo_export_YYYYMMDD_HHMMSS.txt`
+The script will create an export file in the specified directory (or current directory if not specified) with the format: `owner_repo_export_YYYYMMDD_HHMMSS.txt`
 
 ### Using as a Module
 

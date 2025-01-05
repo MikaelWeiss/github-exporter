@@ -220,8 +220,8 @@ if __name__ == "__main__":
     parser.add_argument('owner', help='Repository owner username')
     parser.add_argument('repo', help='Repository name')
     parser.add_argument('--token', help='GitHub personal access token (alternatively, set GITHUB_TOKEN env variable)')
-    parser.add_argument('--output', '-o', 
-                       help='Output file path (e.g., /path/to/export.txt). If not provided, saves in current directory.')
+    parser.add_argument('--output-dir', '-o', default='.',
+                       help='Output directory for the export file (default: current directory)')
     
     args = parser.parse_args()
     
@@ -230,6 +230,14 @@ if __name__ == "__main__":
     if not token:
         raise ValueError("GitHub token must be provided either via --token argument or GITHUB_TOKEN environment variable")
     
+    # Ensure output directory exists
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    
+    # Generate output path
+    date_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_file = os.path.join(args.output_dir, f"{args.owner}_{args.repo}_export_{date_str}.txt")
+    
     exporter = GitHubExporter(token, args.owner, args.repo)
-    output_file = exporter.export_to_file(args.output)
+    output_file = exporter.export_to_file(output_file)
     print(f"\nRepository exported to: {output_file}")
