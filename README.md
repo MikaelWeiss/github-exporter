@@ -79,18 +79,26 @@ On macOS/Linux:
 export GITHUB_TOKEN=your_github_personal_access_token
 ```
 
-2. Open `export.py` and replace the placeholder values at the bottom of the file:
+2. Run the script with owner and repository name:
 ```
-OWNER = "repository_owner_username"
-REPO = "repository_name"
-```
-
-3. Run the script:
-```
-python export.py
+python export.py OWNER REPO [--output OUTPUT_PATH]
 ```
 
-The script will create an export file in the current directory with the format: `owner_repo_export_YYYYMMDD_HHMMSS.txt`
+For example:
+```
+# Export to current directory (default)
+python export.py octocat Hello-World
+
+# Export to specific location
+python export.py octocat Hello-World --output /path/to/export.txt
+# or
+python export.py octocat Hello-World -o /path/to/export.txt
+
+# With explicit token
+python export.py octocat Hello-World --token your_github_token --output /path/to/export.txt
+```
+
+If no output path is specified, the script will create an export file in the current directory with the format: `owner_repo_export_YYYYMMDD_HHMMSS.txt`
 
 ### Using as a Module
 

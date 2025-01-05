@@ -4,6 +4,7 @@ import base64
 from datetime import datetime
 from tqdm import tqdm
 from halo import Halo
+import argparse
 
 class GitHubExporter:
     def __init__(self, token, owner, repo):
@@ -214,11 +215,21 @@ class GitHubExporter:
 
 # Example usage
 if __name__ == "__main__":
-    # Replace these with your values
-    TOKEN = os.getenv('GITHUB_TOKEN')
-    OWNER = "mikaelweiss"
-    REPO = "striveplanner"
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='Export GitHub repository content')
+    parser.add_argument('owner', help='Repository owner username')
+    parser.add_argument('repo', help='Repository name')
+    parser.add_argument('--token', help='GitHub personal access token (alternatively, set GITHUB_TOKEN env variable)')
+    parser.add_argument('--output', '-o', 
+                       help='Output file path (e.g., /path/to/export.txt). If not provided, saves in current directory.')
     
-    exporter = GitHubExporter(TOKEN, OWNER, REPO)
-    output_file = exporter.export_to_file()
-    print(f"Repository exported to: {output_file}")
+    args = parser.parse_args()
+    
+    # Get token from args or environment variable
+    token = args.token or os.getenv('GITHUB_TOKEN')
+    if not token:
+        raise ValueError("GitHub token must be provided either via --token argument or GITHUB_TOKEN environment variable")
+    
+    exporter = GitHubExporter(token, args.owner, args.repo)
+    output_file = exporter.export_to_file(args.output)
+    print(f"\nRepository exported to: {output_file}")
