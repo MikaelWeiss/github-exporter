@@ -36,7 +36,7 @@ This tool is particularly useful for:
 
 1. Clone this repository:
 ```
-git clone https://github.com/mikaelweiss/github-repo-exporter.git
+git clone https://github.com/mikaelweiss/github-exporter.git
 cd github-repo-exporter
 ```
 
