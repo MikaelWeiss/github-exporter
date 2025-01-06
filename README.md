@@ -37,7 +37,7 @@ This tool is particularly useful for:
 1. Clone this repository:
 ```
 git clone https://github.com/mikaelweiss/github-exporter.git
-cd github-repo-exporter
+cd github-exporter
 ```
 
 2. Create and activate a virtual environment:
