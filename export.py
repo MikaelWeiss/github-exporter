@@ -97,7 +97,7 @@ class GitHubExporter:
             # Extract total pages from Link header
             last_link = [l for l in response.headers['Link'].split(', ') if 'rel="last"' in l]
             if last_link:
-                total_issues = int(last_link[0].split('page=')[1].split('&')[0]) * 100
+                total_issues = int(last_link[0].split('page=')[1].split('&')[0])
         
         spinner.stop()
         
@@ -111,21 +111,26 @@ class GitHubExporter:
                 if response.status_code != 200 or not response.json():
                     break
                 
-                for issue in response.json():
+                current_issues = response.json()
+                for issue in current_issues:
                     issue_text = f"\n=== Issue #{issue['number']}: {issue['title']} ===\n"
                     issue_text += f"State: {issue['state']}\n"
                     issue_text += f"Created: {issue['created_at']}\n"
                     issue_text += f"Description:\n{issue['body']}\n"
                     
-                    # Get comments with a spinner
-                    comments_spinner = Halo(text=f"Fetching comments for issue #{issue['number']}...", spinner='dots')
-                    comments_spinner.start()
-                    comments_response = requests.get(issue['comments_url'], headers=self.headers)
-                    if comments_response.status_code == 200:
-                        for comment in comments_response.json():
-                            issue_text += f"\nComment by {comment['user']['login']} on {comment['created_at']}:\n"
-                            issue_text += f"{comment['body']}\n"
-                    comments_spinner.stop()
+                    # Get comments count
+                    comments_count = issue.get('comments', 0)
+                    if comments_count > 0:
+                        comments_response = requests.get(issue['comments_url'], headers=self.headers)
+                        if comments_response.status_code == 200:
+                            comments = comments_response.json()
+                            with tqdm(total=len(comments), 
+                                    desc=f"Fetching comments for issue #{issue['number']}", 
+                                    leave=False) as comment_pbar:
+                                for comment in comments:
+                                    issue_text += f"\nComment by {comment['user']['login']} on {comment['created_at']}:\n"
+                                    issue_text += f"{comment['body']}\n"
+                                    comment_pbar.update(1)
                     
                     issues.append(issue_text)
                     pbar.update(1)
@@ -152,6 +157,72 @@ class GitHubExporter:
                 prs.append(pr_text)
         
         return '\n'.join(prs)
+
+    def get_project_data(self):
+        """Get all project data from the repository's associated projects."""
+        spinner = Halo(text='Fetching projects...', spinner='dots')
+        spinner.start()
+        
+        # First, get all projects associated with the repository
+        response = requests.get(
+            f'{self.base_url}/projects',
+            headers={**self.headers, 'Accept': 'application/vnd.github.inertia-preview+json'}
+        )
+        
+        if response.status_code != 200:
+            spinner.fail('Failed to fetch projects')
+            return "No projects found or access denied"
+        
+        projects = response.json()
+        if not projects:
+            spinner.succeed('No projects found')
+            return "No projects found"
+        
+        spinner.succeed(f'Found {len(projects)} projects')
+        
+        projects_content = []
+        for project in tqdm(projects, desc="Fetching project details"):
+            project_text = f"\n=== Project: {project['name']} ===\n"
+            project_text += f"State: {project['state']}\n"
+            project_text += f"Created: {project['created_at']}\n"
+            project_text += f"Description: {project.get('body', 'No description')}\n"
+            
+            # Get columns
+            columns_response = requests.get(
+                project['columns_url'],
+                headers={**self.headers, 'Accept': 'application/vnd.github.inertia-preview+json'}
+            )
+            
+            if columns_response.status_code == 200:
+                columns = columns_response.json()
+                for column in columns:
+                    project_text += f"\n--- Column: {column['name']} ---\n"
+                    
+                    # Get cards in column
+                    cards_response = requests.get(
+                        column['cards_url'],
+                        headers={**self.headers, 'Accept': 'application/vnd.github.inertia-preview+json'}
+                    )
+                    
+                    if cards_response.status_code == 200:
+                        cards = cards_response.json()
+                        for card in cards:
+                            if card.get('note'):
+                                project_text += f"Note: {card['note']}\n"
+                            elif card.get('content_url'):
+                                # This is a linked issue or PR
+                                content_response = requests.get(
+                                    card['content_url'],
+                                    headers=self.headers
+                                )
+                                if content_response.status_code == 200:
+                                    content = content_response.json()
+                                    project_text += f"Linked {content.get('type', 'item')}: {content.get('title', 'Untitled')}\n"
+                            project_text += "---\n"
+            
+            projects_content.append(project_text)
+        
+        return '\n'.join(projects_content)
 
     def export_to_file(self, output_file=None):
         """
@@ -198,6 +269,10 @@ class GitHubExporter:
         content.append(self.get_issues())
         content.append("\n=== Pull Requests ===")
         content.append(self.get_pull_requests())
+        
+        # Add Projects section
+        content.append("\n=== Projects ===")
+        content.append(self.get_project_data())
         
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(content))

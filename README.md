@@ -17,6 +17,7 @@ This tool is particularly useful for:
 - Exports all repository files with their contents
 - Captures full issue history including comments
 - Includes all pull requests
+- Exports GitHub Project boards with columns and cards
 - Saves repository metadata (creation date, description, etc.)
 - Automatically handles pagination for large repositories
 - Supports both main and master branches
@@ -109,6 +110,7 @@ The export file contains sections for:
 - Files (with full content)
 - Issues (including all comments)
 - Pull Requests
+- Projects (including columns, cards, and linked items)
 
 Each section is clearly marked with `=== Section Name ===` headers.
 
