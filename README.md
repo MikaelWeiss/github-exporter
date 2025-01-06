@@ -7,10 +7,9 @@ A Python script that creates a comprehensive export of a GitHub repository's con
 - Repository metadata
 
 This tool is particularly useful for:
+- Creating a project file that you can easily give to an LLM
 - Creating offline backups of your GitHub repositories
-- Migrating repository data to other systems
 - Archiving projects
-- Generating documentation
 
 ## Features
 
