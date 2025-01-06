@@ -163,26 +163,39 @@ class GitHubExporter:
         spinner = Halo(text='Fetching projects...', spinner='dots')
         spinner.start()
         
-        # First, get all projects associated with the repository
-        response = requests.get(
+        projects_content = []
+        
+        # Try fetching classic projects
+        classic_response = requests.get(
             f'{self.base_url}/projects',
             headers={**self.headers, 'Accept': 'application/vnd.github.inertia-preview+json'}
         )
         
-        if response.status_code != 200:
+        # Try fetching new GitHub Projects (beta)
+        org_projects_response = requests.get(
+            f'https://api.github.com/orgs/{self.owner}/projects',
+            headers={**self.headers, 'Accept': 'application/vnd.github.project-beta+json'}
+        )
+        
+        if classic_response.status_code != 200 and org_projects_response.status_code != 200:
             spinner.fail('Failed to fetch projects')
             return "No projects found or access denied"
         
-        projects = response.json()
-        if not projects:
+        # Handle classic projects
+        classic_projects = classic_response.json() if classic_response.status_code == 200 else []
+        
+        # Handle new projects
+        org_projects = org_projects_response.json() if org_projects_response.status_code == 200 else []
+        
+        if not classic_projects and not org_projects:
             spinner.succeed('No projects found')
             return "No projects found"
         
-        spinner.succeed(f'Found {len(projects)} projects')
+        spinner.succeed(f'Found {len(classic_projects) + len(org_projects)} projects')
         
-        projects_content = []
-        for project in tqdm(projects, desc="Fetching project details"):
-            project_text = f"\n=== Project: {project['name']} ===\n"
+        # Process classic projects
+        for project in tqdm(classic_projects, desc="Fetching classic project details"):
+            project_text = f"\n=== Classic Project: {project['name']} ===\n"
             project_text += f"State: {project['state']}\n"
             project_text += f"Created: {project['created_at']}\n"
             project_text += f"Description: {project.get('body', 'No description')}\n"
@@ -210,7 +223,6 @@ class GitHubExporter:
                             if card.get('note'):
                                 project_text += f"Note: {card['note']}\n"
                             elif card.get('content_url'):
-                                # This is a linked issue or PR
                                 content_response = requests.get(
                                     card['content_url'],
                                     headers=self.headers
@@ -219,6 +231,30 @@ class GitHubExporter:
                                     content = content_response.json()
                                     project_text += f"Linked {content.get('type', 'item')}: {content.get('title', 'Untitled')}\n"
                             project_text += "---\n"
+            
+            projects_content.append(project_text)
+        
+        # Process new projects
+        for project in tqdm(org_projects, desc="Fetching new project details"):
+            project_text = f"\n=== Project (Beta): {project['title']} ===\n"
+            project_text += f"Number: {project['number']}\n"
+            project_text += f"Created: {project['created_at']}\n"
+            project_text += f"Description: {project.get('body', 'No description')}\n"
+            
+            # Get project items
+            items_response = requests.get(
+                f"https://api.github.com/projects/{project['number']}/items",
+                headers={**self.headers, 'Accept': 'application/vnd.github.project-beta+json'}
+            )
+            
+            if items_response.status_code == 200:
+                items = items_response.json()
+                project_text += "\n--- Project Items ---\n"
+                for item in items:
+                    project_text += f"Title: {item.get('title', 'Untitled')}\n"
+                    if 'content' in item:
+                        project_text += f"Type: {item['content'].get('type', 'Unknown')}\n"
+                    project_text += "---\n"
             
             projects_content.append(project_text)
         
