@@ -27,10 +27,6 @@ This tool is particularly useful for:
 
 - Python 3.6 or higher
 - GitHub Personal Access Token
-- Required Python packages:
-  - requests
-  - tqdm
-  - halo
 
 ## Installation
 
@@ -56,7 +52,7 @@ source venv/bin/activate
 
 3. Install the required packages:
 ```
-pip install requests tqdm halo
+pip install -r requirements.txt
 ```
 
 4. Create a GitHub Personal Access Token:
